@@ -116,6 +116,15 @@ void SaveModel(uint32_t modelID, emscripten::val callback)
     );
 }
 
+void SaveModelCustom(uint32_t modelID, emscripten::val callback, bool includeHeader, bool includeFooter)
+{
+    models[modelID].GetLoader()->SaveFile([&](char* src, size_t srcSize)
+        {
+            emscripten::val retVal = callback((uint32_t)src, srcSize);
+        }
+    , includeHeader, includeFooter);
+}
+
 int GetModelSize(uint32_t modelID)
 {
     return models[modelID].GetLoader()->GetTotalSize();
@@ -1113,6 +1122,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     emscripten::function("RemoveLine", &RemoveLine);
     emscripten::function("WriteHeaderLine", &WriteHeaderLine);
     emscripten::function("SaveModel", &SaveModel);
+    emscripten::function("SaveModelCustom", &SaveModelCustom);
     emscripten::function("ValidateExpressID", &ValidateExpressID);
     emscripten::function("GetNextExpressID", &GetNextExpressID);
     emscripten::function("GetLineIDsWithType", &GetLineIDsWithType);

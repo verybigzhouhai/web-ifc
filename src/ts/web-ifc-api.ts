@@ -393,6 +393,24 @@ export class IfcAPI {
     }
 
     /**
+	 * Saves a model to a Buffer
+	 * @param modelID Model ID
+	 * @returns Buffer containing the model data
+	 */
+    SaveModelCustom(modelID: number, includeHeader: boolean, includeFooter: boolean): Uint8Array {
+        let dataBuffer:Uint8Array = new Uint8Array(0);
+        this.wasmModule.SaveModelCustom(modelID, (srcPtr: number, srcSize: number) => {
+            let origSize: number = dataBuffer.byteLength;
+            let src = this.wasmModule.HEAPU8.subarray(srcPtr, srcPtr + srcSize);
+            let newBuffer = new Uint8Array(origSize+srcSize);
+            newBuffer.set(dataBuffer)
+            newBuffer.set(src, origSize);
+            dataBuffer = newBuffer;
+        }, includeHeader, includeFooter);
+       return dataBuffer;
+    }
+
+    /**
     * Retrieves the geometry of an element
     * @param modelID Model handle retrieved by OpenModel
     * @param geometryExpressID express ID of the element

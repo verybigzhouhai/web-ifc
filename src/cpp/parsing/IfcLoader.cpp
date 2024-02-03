@@ -200,6 +200,139 @@ namespace webifc::parsing {
       outputData((char*)tmp.c_str(),tmp.size());
    }
    
+   void IfcLoader::SaveFile(const std::function<void(char *, size_t)> &outputData, bool includeHeader, bool includeFooter) const
+   { 
+      std::ostringstream output;
+      if (includeHeader) {
+        output << "ISO-10303-21;"<<std::endl<<"HEADER;"<<std::endl;
+        output << "/******************************************************" << std::endl;
+        output << "* STEP Physical File produced by: IFCjs WebIfc " << WEB_IFC_VERSION_NUMBER << std::endl;
+        output << "* Module: web-ifc/IfcLoader" << std::endl;
+        output << "* Version: " << WEB_IFC_VERSION_NUMBER << std::endl;
+        output << "* Source: https://github.com/IFCjs/web-ifc" << std::endl;
+        output << "* Issues: https://github.com/IFCjs/web-ifc/issues" << std::endl;
+        output << "******************************************************/" << std::endl;
+      }
+      
+      const std::vector<IfcLine*> *totalLines[2] = {&_headerLines, &_lines};
+      uint32_t linesWritten = 0;
+      uint8_t start=1;
+      if (includeHeader) {
+        start  = 0;
+      }
+      for (uint8_t z=start; z < 2; z++)
+      {
+        const std::vector<IfcLine*>* currentLines = totalLines[z];
+        for(uint32_t i=0; i < currentLines->size();i++)
+        {
+          IfcLine * line = (*currentLines)[i];
+
+          if (line == _nullLine || line->ifcType == 0) continue;
+          _tokenStream->MoveTo(line->tapeOffset);
+          bool newLine = true;
+          bool insideSet = false;
+          IfcTokenType prev = IfcTokenType::EMPTY;
+          while (!_tokenStream->IsAtEnd())
+          {
+            IfcTokenType t = static_cast<IfcTokenType>(_tokenStream->Read<char>());
+
+            if (t != IfcTokenType::SET_END && t != IfcTokenType::LINE_END)
+            {
+              if (insideSet && prev != IfcTokenType::SET_BEGIN && prev != IfcTokenType::LABEL && prev != IfcTokenType::LINE_END)
+              {
+                output << ",";
+              }
+            }
+
+            if (t == IfcTokenType::LINE_END)
+            {
+              output << ";" << std::endl;
+              break;
+            }
+
+            switch (t)
+            {
+              case IfcTokenType::UNKNOWN:
+              {
+                output << "*";
+                break;
+              }
+              case IfcTokenType::EMPTY:
+              {
+                output << "$";
+                break;
+              }
+              case IfcTokenType::SET_BEGIN:
+              {
+                output << "(";
+                insideSet = true;
+                break;
+              }
+              case IfcTokenType::SET_END:
+              {
+                output << ")";
+                break;
+              }
+              case IfcTokenType::STRING:
+              {
+                output << "'";
+                p21encode(_tokenStream->ReadString(),output);
+                output << "'";
+                break;
+              }
+              case IfcTokenType::ENUM:
+              {
+                output << "." << _tokenStream->ReadString() << ".";
+                break;
+              }
+              case IfcTokenType::REF:
+              {
+                output << "#" << _tokenStream->Read<uint32_t>();
+                if (newLine) output << "=";
+                break;
+              }
+              case IfcTokenType::LABEL:
+              case IfcTokenType::REAL:
+              case IfcTokenType::INTEGER:
+              { 
+                output << _tokenStream->ReadString();
+                break;
+              }
+              default:
+                break;
+            }
+
+            if (t == IfcTokenType::LINE_END)
+            {
+              newLine = true;
+              insideSet = false;
+            }
+            else
+            {
+              newLine = false;
+            }
+            prev = t;
+          }
+        
+          linesWritten++;
+          if (linesWritten > _lineWriterBuffer ) 
+          {
+            std::string tmp = output.str();
+            outputData((char*)tmp.c_str(),tmp.size());
+            output.str("");
+            output.clear();
+            linesWritten=0;
+          }
+        }
+        if (z==0) output << "ENDSEC;"<<std::endl<<"DATA;"<<std::endl;
+      }
+      if (includeFooter) {
+        output << "ENDSEC;"<<std::endl<<"END-ISO-10303-21;";
+      }
+      std::string tmp = output.str();
+      outputData((char*)tmp.c_str(),tmp.size());
+   }
+   
    void IfcLoader::SaveFile(std::ostream &outputData) const
    { 
      SaveFile([&](char* src, size_t srcSize)

@@ -26,6 +26,7 @@ namespace webifc::parsing
       void LoadFile(const std::function<uint32_t(char *, size_t, size_t)> &requestData);
       void LoadFile(std::istream &requestData);
       void SaveFile(const std::function<void(char *, size_t)> &outputData) const;
+      void SaveFile(const std::function<void(char *, size_t)> &outputData, bool includeHeader, bool includeFooter) const;
       void SaveFile(std::ostream &outputData) const;
       const std::vector<uint32_t> GetExpressIDsWithType(const uint32_t type) const;
       uint32_t GetMaxExpressId() const;
