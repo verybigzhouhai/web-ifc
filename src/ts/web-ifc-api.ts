@@ -632,7 +632,8 @@ export class IfcAPI {
             if (lineProperty  && (lineProperty as IfcLineObject).expressID !== undefined) {
                 // this is a real object, we have to write it as well and convert to a handle
                 // TODO: detect if the object needs to be written at all, or if it's unchanged
-                this.WriteLine(modelID, lineProperty as IfcLineObject);
+                // 由于重复写入的bug修复导致了内存泄漏，所以这里强制去掉所有的重复写入
+                // this.WriteLine(modelID, lineProperty as IfcLineObject);
 
                 // overwrite the reference
                 // NOTE: this modifies the parameter
@@ -643,7 +644,8 @@ export class IfcAPI {
                     if ((lineProperty[i] as IfcLineObject).expressID !== undefined) {
                         // this is a real object, we have to write it as well and convert to a handle
                         // TODO: detect if the object needs to be written at all, or if it's unchanged
-                        this.WriteLine(modelID, lineProperty[i] as IfcLineObject);
+                        // 由于重复写入的bug修复导致了内存泄漏，所以这里强制去掉所有的重复写入
+                        // this.WriteLine(modelID, lineProperty[i] as IfcLineObject);
 
                         // overwrite the reference
                         // NOTE: this modifies the parameter
